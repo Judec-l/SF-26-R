@@ -117,7 +117,7 @@ def match_pair(x1, y1, x2, y2, r1, r2, max_dis, option, parameters=None):
                 dx, dy, dr,
                 confidence1, confidence2,
                 drift, info, debug_info
-            ) = match_pair9(
+            ) = match_pair(
                 x1, y1, x2, y2,
                 r1, r2, max_dis,
                 option, parameters
