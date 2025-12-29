@@ -1,8 +1,6 @@
 import os
 import numpy as np
 from scipy.io import loadmat, savemat
-
-
 def match_pair(x1, y1, x2, y2, r1, r2, max_dis, option, parameters=None):
     # Early return
     if len(x1) < 20 or len(x2) < 20:

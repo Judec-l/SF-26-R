@@ -144,9 +144,7 @@ def match_pairRelax4(x1, y1, x2, y2, r1, r2, max_dis, option):
 # AUXILIARY FUNCTION
 # ============================================================
 def match_pairRelax_aux(x1, y1, x2, y2, r1, r2, indexa, indexb, option):
-
     global Rs, Rn, Rq, A, B, C, NR
-
     N1 = len(x1)
     I_temp = np.full(N1, -1, dtype=int)
     confidence = np.zeros(N1)

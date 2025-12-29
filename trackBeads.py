@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from match_pair import match_pair
-
 class trackBeads:
     def __init__(self, positionArray1, positionArray2, dataName,
                  maxBeadDisplacement, beadParam=None):

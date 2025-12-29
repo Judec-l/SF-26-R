@@ -3,7 +3,6 @@ import numpy as np
 def LinkPairsF2L(cellPairs):
     """
     This function links bead pairs from the first frame to the last frame.
-
     Parameters
     ----------
     cellPairs : list of numpy.ndarray

@@ -5,7 +5,6 @@ from numpy.linalg import norm, inv
 def MLS_interpolation(x, xi, ui, order, c=None):
     """
     Moving Least Squares (MLS) interpolation in 2D
-
     Parameters
     ----------
     x : array-like, shape (2,)

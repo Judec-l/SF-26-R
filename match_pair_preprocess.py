@@ -215,7 +215,6 @@ def match_pair_preprocess_aux(
     for m in range(N2s):
         qI = rng[2] + m
         q = np.array([x2p[qI], y2p[qI], r2p[qI]])
-
         for n in range(N1):
             p = np.array([x1p[n], y1p[n], r1p[n]])
             dist = np.linalg.norm(p - q)

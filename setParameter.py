@@ -1,7 +1,6 @@
 def setParameter(parameter, field, default):
     """
     Mimics MATLAB setParameter for struct fields.
-
     Parameters
     ----------
     parameter : dict
