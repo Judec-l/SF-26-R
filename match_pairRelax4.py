@@ -2,9 +2,6 @@ import os
 import numpy as np
 import pickle
 
-# =========================
-# Global parameters (MATLAB globals)
-# =========================
 Rs = None
 Rn = None
 Rq = None
@@ -17,10 +14,6 @@ NR = None
 def setParameter(parameter, field, default):
     return parameter[field] if field in parameter else default
 
-
-# ============================================================
-# MAIN FUNCTION
-# ============================================================
 def match_pairRelax4(x1, y1, x2, y2, r1, r2, max_dis, option):
 
     global Rs, Rn, Rq, A, B, C, NR
@@ -67,9 +60,6 @@ def match_pairRelax4(x1, y1, x2, y2, r1, r2, max_dis, option):
     N1 = len(x1)
     N2 = len(x2)
 
-    # ========================================================
-    # Stage 1: preprocess
-    # ========================================================
     if not os.path.exists(preprocessFn):
         print("calculating preprocess data stage1...")
         from match_pair_preprocess import match_pair_preprocess
@@ -86,9 +76,6 @@ def match_pairRelax4(x1, y1, x2, y2, r1, r2, max_dis, option):
      index1a, index1b,
      index2a, index2b) = data
 
-    # ========================================================
-    # Stage 2 & 3: a->b and b->a
-    # ========================================================
     option_a = option.copy()
     option_a["str"] = "a"
     I1_temp, confidence1 = match_pairRelax_aux(
@@ -101,9 +88,6 @@ def match_pairRelax4(x1, y1, x2, y2, r1, r2, max_dis, option):
         x2, y2, x1, y1, r2, r1, index2b, index2a, option_b
     )
 
-    # ========================================================
-    # Mutual consistency check
-    # ========================================================
     I1 = []
     I2 = []
 
@@ -139,10 +123,6 @@ def match_pairRelax4(x1, y1, x2, y2, r1, r2, max_dis, option):
 
     return I1, I2, I1u, I2u, dx, dy, dr, confidence1, confidence2, drift, info, debug_info
 
-
-# ============================================================
-# AUXILIARY FUNCTION
-# ============================================================
 def match_pairRelax_aux(x1, y1, x2, y2, r1, r2, indexa, indexb, option):
     global Rs, Rn, Rq, A, B, C, NR
     N1 = len(x1)

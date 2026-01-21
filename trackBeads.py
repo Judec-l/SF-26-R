@@ -1,12 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from match_pair import match_pair
+
+
+
 class trackBeads:
     def __init__(self, positionArray1, positionArray2, dataName,
                  maxBeadDisplacement, beadParam=None):
-        """
-        Constructor
-        """
         if beadParam is None:
             beadParam = {}
 
@@ -14,11 +13,9 @@ class trackBeads:
         self.beadParam = beadParam
         self.matchArray = []
 
-        # Read ioInfo if exists
         ioInfo = beadParam.get('ioInfo', {})
         self.nFrames = ioInfo.get('nFrames', 2)
 
-        # Parameters
         self.beadParam['max_dis'] = maxBeadDisplacement
         self.beadParam.setdefault('matchpair_option', {})
         self.beadParam['matchpair_option'].update({
@@ -49,10 +46,8 @@ class trackBeads:
         self.beadParam['threshold'] = 0.08
         self.beadParam['MATCH_STRATEGY'] = 'FromPrevious'
 
-        # Initialize position array
         self.positionArray = [None] * self.nFrames
 
-        # Force 3D (z = 0)
         positionArray1 = np.asarray(positionArray1)
         positionArray2 = np.asarray(positionArray2)
 
@@ -63,17 +58,10 @@ class trackBeads:
 
         self.positionArray[0] = positionArray1
         self.positionArray[1] = positionArray2
-
-        # Match first two frames
         self.matchBeadPositionT1T2()
-
-        # Global start frame
         self.T1 = ioInfo.get('T1', 1)
 
     def locateBeadPosition(self, ioInfo, k):
-        """
-        Locate bead positions at frame k (relative to T1)
-        """
         bp = beadPosition(
             ioInfo['imagePath'] + ioInfo['imageFnStackArray'][k],
             self.beadParam['threshold']
@@ -82,9 +70,6 @@ class trackBeads:
         self.positionArray[k] = bp.beadPositionLocal
 
     def matchBeadPositionT1T2(self):
-        """
-        Match beads between frame 1 and frame 2
-        """
         t1 = 0
         t2 = 1
 
@@ -128,9 +113,6 @@ class trackBeads:
         self.matchArray.append(data)
 
     def matchBeadPosition(self, t2=None):
-        """
-        Match beads using selected strategy
-        """
         if t2 is not None:
             if self.beadParam['MATCH_STRATEGY'] == 'FromFirst':
                 t1 = self.T1
@@ -142,9 +124,6 @@ class trackBeads:
                 self.matchBeadPosition(k + self.T1 + 1)
 
     def beadPlot(self, t, param=None, h=None):
-        """
-        Plot bead positions at time t
-        """
         import matplotlib.pyplot as plt
 
         if param is None:
@@ -167,9 +146,6 @@ class trackBeads:
         return ax
 
     def matchPlot(self, t1, t2, param=None, h=None):
-        """
-        Plot bead displacement between t1 and t2
-        """
         import matplotlib.pyplot as plt
 
         if param is None:
@@ -204,9 +180,6 @@ class trackBeads:
         return ax
 
     def loadFromOld(self, Fn, n):
-        """
-        Load bead positions from old data file
-        """
         import scipy.io as sio
         tempData = sio.loadmat(Fn)
         cellData = tempData['positionData']['beadCenterUm'][0, n - 1]
@@ -214,9 +187,6 @@ class trackBeads:
         self.positionArray = list(cellData)
 
     def loadFromSimpleData(self, Fn):
-        """
-        Load simple bead position data
-        """
         import scipy.io as sio
         tempData = sio.loadmat(Fn)
 

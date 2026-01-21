@@ -1,8 +1,15 @@
 import os
 import numpy as np
 from scipy.io import loadmat, savemat
+from match_pair_preprocess import match_pair_preprocess
+from match_pairRelax4 import match_pairRelax4
+
+def setParameter(option, key, default):
+    if option is None:
+        return default
+    return option.get(key, default)
+
 def match_pair(x1, y1, x2, y2, r1, r2, max_dis, option, parameters=None):
-    # Early return
     if len(x1) < 20 or len(x2) < 20:
         return (
             0, [], [], [], [], [], [], [],
@@ -18,7 +25,6 @@ def match_pair(x1, y1, x2, y2, r1, r2, max_dis, option, parameters=None):
     print(N2)
     print(max_dis)
 
-    # Folder checks
     if not os.path.exists("../PTLibrary2D/aux_matchpair"):
         raise FileNotFoundError(
             "There is no aux_matchpair in ../PTLibrary2D/aux_matchpair"
@@ -29,7 +35,6 @@ def match_pair(x1, y1, x2, y2, r1, r2, max_dis, option, parameters=None):
             "There is no res_matchpair in ../PTLibrary2D/res_matchpair"
         )
 
-    # Parameters
     resfolder = setParameter(option, "resfolder", "../PTLibrary2D/res_matchpair/")
     auxfolder = setParameter(option, "auxfolder", "../PTLibrary2D/aux_matchpair/")
     savefileStr_temp = setParameter(option, "savefileStr", "")
@@ -82,14 +87,12 @@ def match_pair(x1, y1, x2, y2, r1, r2, max_dis, option, parameters=None):
             }
         )
 
-    # meanDist as MATLAB struct equivalent
     meanDist = {}
     meanDist["Dist1a"] = np.mean(dist_min1a)
     meanDist["Dist2b"] = np.mean(dist_min2b)
     meanDist["Dist1b"] = np.mean(dist_min1b)
     meanDist["Dist2a"] = np.mean(dist_min2a)
 
-    # Load or compute result
     if option.get("loadRes", "").upper() == "YES" and os.path.exists(loadfilename):
         print("Loading existing matching result...")
         print(loadfilename)

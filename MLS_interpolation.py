@@ -1,40 +1,12 @@
 import numpy as np
 from numpy.linalg import norm, inv
 
-
 def MLS_interpolation(x, xi, ui, order, c=None):
-    """
-    Moving Least Squares (MLS) interpolation in 2D
-    Parameters
-    ----------
-    x : array-like, shape (2,)
-        Point of interest [x, y]
-    xi : array-like, shape (m, 2)
-        Coordinates of m data points
-    ui : array-like, shape (m,)
-        Function values at data points
-    order : int
-        1 = linear, 2 = quadratic, 3 = cubic
-    c : float or None
-        Weight parameter (if None, computed automatically)
-
-    Returns
-    -------
-    u : float
-        Interpolated value at x
-    u_derivative : ndarray, shape (2,)
-        Spatial derivatives [du/dx, du/dy]
-    u_ii : float
-        Laplacian (d²u/dx² + d²u/dy²)
-    """
-
     x = np.asarray(x, dtype=float)
     xi = np.asarray(xi, dtype=float)
     ui = np.asarray(ui, dtype=float).reshape(-1)
 
     m = len(ui)
-
-    # number of basis functions
     n = order * 3 + (1 if order == 3 else 0)
 
     A = np.zeros((n, n))
@@ -47,7 +19,6 @@ def MLS_interpolation(x, xi, ui, order, c=None):
     B_2 = np.zeros((n, m))
     B_ii = np.zeros((n, m))
 
-    # distances
     d = np.sqrt((x[0] - xi[:, 0])**2 + (x[1] - xi[:, 1])**2)
     d_sorted = np.sort(d)
 
@@ -84,7 +55,6 @@ def MLS_interpolation(x, xi, ui, order, c=None):
         else:
             wi_1 = wi_2 = wi_ii = 0.0
 
-        # basis functions
         if order == 1:
             p = np.array([1, xi[i, 0], xi[i, 1]])
         elif order == 2:
@@ -125,7 +95,6 @@ def MLS_interpolation(x, xi, ui, order, c=None):
         - A_inv @ A_ii @ A_inv
     )
 
-    # basis at x
     if order == 1:
         p = np.array([1, x[0], x[1]])
         p1 = np.array([0, 1, 0])

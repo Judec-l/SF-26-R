@@ -1,6 +1,5 @@
 import numpy as np
 
-# MATLAB global variable replacement
 COMM = 0
 
 
@@ -34,7 +33,6 @@ def match_pair_preprocess(
     index2a = np.zeros((NT2, 3), dtype=int)
     index2b = np.zeros((NT2, 3), dtype=int)
 
-    # number of partitions
     if min(NT1, NT2) > 200:
         NP = int(np.floor((min(NT1, NT2) / 3) ** (1 / 3)))
     elif min(NT1, NT2) > 50:
@@ -62,7 +60,6 @@ def match_pair_preprocess(
         rmin = min(r1_unpaired.min(), r2_unpaired.min()) - eps
         rmax = max(r1_unpaired.max(), r2_unpaired.max()) + eps
 
-        # partition set 1
         for n in range(NT1):
             ix = int(np.floor((x1_unpaired[n] - xmin) / (xmax - xmin) * NP))
             iy = int(np.floor((y1_unpaired[n] - ymin) / (ymax - ymin) * NP))
@@ -72,7 +69,6 @@ def match_pair_preprocess(
             ir = min(max(ir, 0), NP - 1)
             SP1[ix][iy][ir].append(n)
 
-        # partition set 2
         for n in range(NT2):
             ix = int(np.floor((x2_unpaired[n] - xmin) / (xmax - xmin) * NP))
             iy = int(np.floor((y2_unpaired[n] - ymin) / (ymax - ymin) * NP))
@@ -157,7 +153,6 @@ def match_pair_preprocess(
         if COMM == 0:
             END_LOOP = 1
 
-    # reorder
     I1 = np.argsort(aux_vector_order1)
     I2 = np.argsort(aux_vector_order2)
 
