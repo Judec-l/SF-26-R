@@ -1,7 +1,6 @@
 import numpy as np
 from match_pair import match_pair
-
-
+from beadPosition import beadPosition
 
 class trackBeads:
     def __init__(self, positionArray1, positionArray2, dataName,
