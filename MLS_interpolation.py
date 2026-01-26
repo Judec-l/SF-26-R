@@ -1,7 +1,3 @@
-"""
-MLS_interpolation.py - Refactored
-Moving Least Squares interpolation for velocity fields
-"""
 import numpy as np
 from numpy.linalg import norm, inv
 from typing import Tuple, Optional
@@ -17,27 +13,6 @@ def MLS_interpolation(
         order: int,
         c: Optional[float] = None
 ) -> Tuple[float, np.ndarray, float]:
-    """
-    Moving Least Squares interpolation with derivatives.
-
-    Interpolates scattered data using polynomial basis functions
-    and exponential weight function. Computes value, gradient,
-    and Laplacian at query point.
-
-    Args:
-        x: Query point [x, y]
-        xi: Data points, shape (m, 2)
-        ui: Data values, shape (m,)
-        order: Polynomial order (1=linear, 2=quadratic, 3=cubic)
-        c: Length scale for weight function (auto-computed if None)
-
-    Returns:
-        Tuple of (u, grad_u, laplacian_u) where:
-        - u: interpolated value
-        - grad_u: gradient [du/dx, du/dy]
-        - laplacian_u: Laplacian d²u/dx² + d²u/dy²
-    """
-    # Validate inputs
     x = np.asarray(x, dtype=float)
     xi = np.asarray(xi, dtype=float)
     ui = np.asarray(ui, dtype=float).reshape(-1)
@@ -53,7 +28,6 @@ def MLS_interpolation(
 
     m = len(ui)
 
-    # Determine number of basis functions
     if order == 1:
         n = 3
     elif order == 2:
@@ -72,7 +46,6 @@ def MLS_interpolation(
     B_2 = np.zeros((n, m))
     B_ii = np.zeros((n, m))
 
-    # Compute distances
     d = np.sqrt((x[0] - xi[:, 0]) ** 2 + (x[1] - xi[:, 1]) ** 2)
     d_sorted = np.sort(d)
 
@@ -118,7 +91,6 @@ def MLS_interpolation(
             wi_2 = 0.0
             wi_ii = 0.0
 
-        # Compute polynomial basis at data point
         if order == 1:
             p = np.array([1, xi[i, 0], xi[i, 1]])
         elif order == 2:
@@ -137,8 +109,6 @@ def MLS_interpolation(
                 xi[i, 1] ** 2 * xi[i, 0],
                 xi[i, 0] ** 3, xi[i, 1] ** 3
             ])
-
-        # Update matrices
         A += wi * np.outer(p, p)
         A_1 += wi_1 * np.outer(p, p)
         A_2 += wi_2 * np.outer(p, p)
@@ -148,15 +118,11 @@ def MLS_interpolation(
         B_1[:, i] = wi_1 * p
         B_2[:, i] = wi_2 * p
         B_ii[:, i] = wi_ii * p
-
-    # Compute matrix inverse
     try:
         A_inv = inv(A)
     except np.linalg.LinAlgError:
         logger.warning("Singular matrix in MLS interpolation, using pseudoinverse")
         A_inv = np.linalg.pinv(A)
-
-    # Compute derivatives of inverse
     A_inv_1 = -A_inv @ A_1 @ A_inv
     A_inv_2 = -A_inv @ A_2 @ A_inv
     A_inv_ii = (
@@ -164,8 +130,6 @@ def MLS_interpolation(
                  A_inv @ A_2 @ A_inv @ A_2 @ A_inv)
             - A_inv @ A_ii @ A_inv
     )
-
-    # Compute polynomial basis and derivatives at query point
     if order == 1:
         p = np.array([1, x[0], x[1]])
         p1 = np.array([0, 1, 0])  # dp/dx

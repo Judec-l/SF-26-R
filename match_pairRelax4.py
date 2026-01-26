@@ -1,7 +1,3 @@
-"""
-match_pairRelax4.py - Refactored
-Relaxation-based particle matching algorithm
-"""
 import os
 import numpy as np
 import pickle
@@ -11,7 +7,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Global parameters (maintained for compatibility)
 Rs = None
 Rn = None
 Rq = None
@@ -22,17 +17,6 @@ NR = None
 
 
 def setParameter(parameter: Optional[Dict[str, Any]], field: str, default: Any) -> Any:
-    """
-    Safely retrieve parameter from dictionary with default value.
-
-    Args:
-        parameter: Parameter dictionary
-        field: Key to retrieve
-        default: Default value if key not found
-
-    Returns:
-        Parameter value or default
-    """
     if parameter is None:
         return default
     return parameter.get(field, default)
@@ -45,34 +29,12 @@ def match_pairRelax4(
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 np.ndarray, list, list, list]:
-    """
-    Match particles between two frames using relaxation algorithm.
-
-    Args:
-        x1, y1: X and Y coordinates of particles in frame 1
-        x2, y2: X and Y coordinates of particles in frame 2
-        r1, r2: Radius/Z coordinates of particles
-        max_dis: Maximum displacement threshold
-        option: Optional configuration dictionary
-
-    Returns:
-        Tuple containing:
-        - I1: Matched indices in frame 1
-        - I2: Matched indices in frame 2
-        - I1u: Unmatched indices in frame 1
-        - I2u: Unmatched indices in frame 2
-        - dx, dy, dr: Displacement components
-        - confidence1, confidence2: Confidence scores
-        - drift, info, debug_info: Additional outputs (empty for compatibility)
-    """
     global Rs, Rn, Rq, A, B, C, NR
 
-    # Initialize empty return values for compatibility
     drift = []
     info = []
     debug_info = []
 
-    # Set global parameters
     Rs = 1.5 * max_dis
     Rn = Rs
     Rq = 0.2 * Rs
@@ -192,7 +154,6 @@ np.ndarray, list, list, list]:
 
     logger.info(f"Unmatched: {len(I1u)} in frame 1, {len(I2u)} in frame 2")
 
-    # Save results
     with open(filename_result, "wb") as f:
         pickle.dump(
             (I1, I2, I1u, I2u, dx, dy, dr, confidence1, confidence2),
@@ -208,31 +169,17 @@ def match_pairRelax_aux(
         indexa: np.ndarray, indexb: np.ndarray,
         option: Dict[str, Any]
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Auxiliary relaxation matching function.
 
-    Args:
-        x1, y1, r1: Coordinates of particles in frame 1
-        x2, y2, r2: Coordinates of particles in frame 2
-        indexa: Indices of nearest neighbors in same frame
-        indexb: Indices of nearest neighbors in other frame
-        option: Options dictionary
-
-    Returns:
-        Tuple of (match_indices, confidence_scores)
-    """
     global Rs, Rn, Rq, A, B, C, NR
 
     N1 = len(x1)
     I_temp = np.full(N1, -1, dtype=int)
     confidence = np.zeros(N1)
 
-    # Initialize probability distributions and neighbor lists
     Pb = [None] * N1
     Nis = [None] * N1
 
     for n in range(N1):
-        # Get valid candidates (filter out invalid indices)
         candidates = indexb[n]
         valid_mask = (candidates >= 0) & (candidates < len(x2))
         valid_candidates = candidates[valid_mask]
@@ -244,7 +191,6 @@ def match_pairRelax_aux(
             Pb[n] = np.array([])
             Nis[n] = np.array([])
 
-    # Relaxation iterations
     for iteration in range(NR):
         Pb_new = []
 
@@ -257,18 +203,15 @@ def match_pairRelax_aux(
                 Pb_new.append(np.array([]))
                 continue
 
-            # Compute consistency scores
             scores = np.zeros(len(cands))
 
             for i, m in enumerate(cands):
                 q = np.array([x2[m], y2[m], r2[m]])
                 dist = np.linalg.norm(p - q)
 
-                # Particles within search radius support this match
                 if dist < Rs:
                     scores[i] += probs[i]
 
-            # Update probabilities using relaxation formula
             if scores.sum() > 0:
                 probs = probs * (A + B * scores)
                 probs = probs / probs.sum()
@@ -277,7 +220,6 @@ def match_pairRelax_aux(
 
         Pb = Pb_new
 
-    # Extract best matches
     for n in range(N1):
         probs = Pb[n]
         if len(probs) > 0:

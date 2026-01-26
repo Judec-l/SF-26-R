@@ -15,17 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 def setParameter(option: Optional[Dict[str, Any]], key: str, default: Any) -> Any:
-    """
-    Safely retrieve parameter from dictionary with default value.
-
-    Args:
-        option: Parameter dictionary
-        key: Key to retrieve
-        default: Default value if key not found
-
-    Returns:
-        Parameter value or default
-    """
     if option is None:
         return default
     return option.get(key, default)
@@ -35,36 +24,9 @@ def match_pair(
         x1: np.ndarray, y1: np.ndarray, x2: np.ndarray, y2: np.ndarray,
         r1: np.ndarray, r2: np.ndarray, max_dis: float,
         option: Optional[Dict[str, Any]] = None,
-        parameters: Optional[Dict[str, Any]] = None
 ) -> Tuple[Dict[str, float], np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 list, list, list]:
-    """
-    Match particles between two frames.
-
-    This is the main entry point for particle matching. It handles:
-    - Loading/saving preprocessing data
-    - Loading/saving matching results
-    - Computing mean distances for diagnostics
-
-    Args:
-        x1, y1: X and Y coordinates of particles in frame 1
-        x2, y2: X and Y coordinates of particles in frame 2
-        r1, r2: Radius/Z coordinates of particles
-        max_dis: Maximum displacement threshold
-        option: Configuration dictionary
-        parameters: Additional parameters (unused, for compatibility)
-
-    Returns:
-        Tuple containing:
-        - meanDist: Dictionary of mean distances
-        - I1, I2: Matched indices
-        - I1u, I2u: Unmatched indices
-        - dx, dy, dr: Displacement components
-        - confidence1, confidence2: Confidence scores
-        - drift, info, debug_info: Additional outputs
-    """
-    # Check minimum number of particles
     if len(x1) < 20 or len(x2) < 20:
         logger.warning("Too few particles for matching")
         return (

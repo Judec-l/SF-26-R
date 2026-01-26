@@ -1,7 +1,3 @@
-"""
-match_pair_preprocess.py - Refactored
-Preprocessing module for particle matching using spatial partitioning
-"""
 import numpy as np
 from typing import Tuple, List
 import logging
@@ -16,20 +12,6 @@ def match_pair_preprocess(
         x2_unpaired: np.ndarray, y2_unpaired: np.ndarray, r2_unpaired: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Preprocess particle positions to find nearest neighbors using spatial partitioning.
-
-    Args:
-        x1_unpaired, y1_unpaired, r1_unpaired: Coordinates of particles in frame 1
-        x2_unpaired, y2_unpaired, r2_unpaired: Coordinates of particles in frame 2
-
-    Returns:
-        Tuple containing:
-        - dist_min1a, dist_min1b: Distances to 3 nearest neighbors (shape N1 x 3)
-        - dist_min2a, dist_min2b: Distances to 3 nearest neighbors (shape N2 x 3)
-        - index1a, index1b: Indices of 3 nearest neighbors (shape N1 x 3)
-        - index2a, index2b: Indices of 3 nearest neighbors (shape N2 x 3)
-    """
     global COMM
 
     logger.info("Preprocessing particle positions...")
@@ -70,7 +52,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
     NR = 0
 
-    # Adaptive partitioning loop
     while END_LOOP == 0 and NR < 100:
         NR += 1
         NP = max(NP - 2, 1)
@@ -78,7 +59,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
         COMM = 0
 
-        # Create 3D spatial partition
         SP1: List[List[List[List[int]]]] = [
             [[[] for _ in range(NP)] for _ in range(NP)] for _ in range(NP)
         ]
@@ -86,7 +66,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
             [[[] for _ in range(NP)] for _ in range(NP)] for _ in range(NP)
         ]
 
-        # Compute spatial bounds
         eps = 1e-7
         xmin = min(x1_unpaired.min(), x2_unpaired.min()) - eps
         xmax = max(x1_unpaired.max(), x2_unpaired.max()) + eps
@@ -121,11 +100,9 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         aux_vector_order1 = np.zeros(NT1, dtype=int)
         aux_vector_order2 = np.zeros(NT2, dtype=int)
 
-        # Process each partition cell
         for n1 in range(NP):
             for n2 in range(NP):
                 for n3 in range(NP):
-                    # Get neighboring cells (including current)
                     n1min, n1max = max(n1 - 1, 0), min(n1 + 1, NP - 1)
                     n2min, n2max = max(n2 - 1, 0), min(n2 + 1, NP - 1)
                     n3min, n3max = max(n3 - 1, 0), min(n3 + 1, NP - 1)
@@ -133,7 +110,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
                     unpaired1_PI = []
                     unpaired2_PI = []
 
-                    # Collect particles from neighboring cells
                     for i1 in range(n1min, n1max + 1):
                         for i2 in range(n2min, n2max + 1):
                             for i3 in range(n3min, n3max + 1):
@@ -152,7 +128,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
                     rng = [range1_min, range1_max, range2_min, range2_max]
 
-                    # Process this partition
                     result = match_pair_preprocess_aux(
                         x1_unpaired[unpaired1_PI],
                         x2_unpaired[unpaired2_PI],
@@ -165,7 +140,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
                         rng
                     )
 
-                    # Check if partition was too small
                     if COMM == 1:
                         break
 
@@ -221,19 +195,6 @@ def match_pair_preprocess_aux(
         rng: List[int]
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Process a single partition cell to find nearest neighbors.
-
-    Args:
-        x1p, y1p, r1p: Coordinates in partition (frame 1)
-        x2p, y2p, r2p: Coordinates in partition (frame 2)
-        unpaired1_PI: Original indices for frame 1 particles
-        unpaired2_PI: Original indices for frame 2 particles
-        rng: [range1_min, range1_max, range2_min, range2_max]
-
-    Returns:
-        Tuple of distance and index arrays
-    """
     global COMM
 
     N1 = len(x1p)
@@ -283,13 +244,11 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         qI = rng[2] + m
         q = np.array([x2p[qI], y2p[qI], r2p[qI]])
 
-        # Find neighbors in frame 1 (cross-frame)
         for n in range(N1):
             p = np.array([x1p[n], y1p[n], r1p[n]])
             dist = np.linalg.norm(p - q)
             _update_top3(d2a[m], i2a[m], dist, unpaired1_PI[n])
 
-        # Find neighbors in frame 2 (same frame)
         for m1 in range(N2):
             if m1 == qI:
                 continue
@@ -302,15 +261,6 @@ np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
 def _update_top3(dist_arr: np.ndarray, idx_arr: np.ndarray,
                  dist: float, idx: int) -> None:
-    """
-    Update top 3 nearest neighbors in place.
-
-    Args:
-        dist_arr: Array of 3 distances (modified in place)
-        idx_arr: Array of 3 indices (modified in place)
-        dist: New distance to consider
-        idx: New index to consider
-    """
     if dist < dist_arr[0]:
         dist_arr[2], idx_arr[2] = dist_arr[1], idx_arr[1]
         dist_arr[1], idx_arr[1] = dist_arr[0], idx_arr[0]
