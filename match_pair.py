@@ -58,7 +58,7 @@ list, list, list]:
         )
 
     # Get paths
-    resfolder = setParameter(option, "resfolder", "../PTLibrary2D/res_matchpair/")
+    resfolder = setParameter(option, "resfolder", "../PTLibrary2D/aux_matchpair/")
     auxfolder = setParameter(option, "auxfolder", "../PTLibrary2D/aux_matchpair/")
     savefileStr_temp = setParameter(option, "savefileStr", "")
     loadfileStr_temp = setParameter(option, "loadfileStr", "")

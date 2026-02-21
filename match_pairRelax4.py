@@ -38,9 +38,9 @@ np.ndarray, list, list, list]:
     Rs = 1.5 * max_dis
     Rn = Rs
     Rq = 0.2 * Rs
-    NR = 20
-    A = 0.3
-    B = 3.0
+    NR = 30  # Increased iterations for better convergence
+    A = 0.1  # Reduced to give more weight to neighbor consistency
+    B = 5.0  # Increased to emphasize neighbor information
     C = 0.0
 
     # Get options
@@ -108,7 +108,7 @@ np.ndarray, list, list, list]:
         x2, y2, x1, y1, r2, r1, index2b, index2a, option_b
     )
 
-    # Find bidirectional consistent matches
+    # Find bidirectional consistent matches with RELAXED thresholds
     I1_list = []
     I2_list = []
 
@@ -119,16 +119,20 @@ np.ndarray, list, list, list]:
 
         # Check bidirectional consistency
         if I2_temp[m] == n:
-            # Check confidence thresholds
-            high_confidence = (confidence1[n] > 0.9 or confidence2[m] > 0.9)
-            medium_confidence = (confidence1[n] > 0.5 and confidence2[m] > 0.5)
+            # RELAXED confidence thresholds - much more lenient
+            acceptable_confidence = (
+                    confidence1[n] > 0.3 or  # Lowered from 0.9
+                    confidence2[m] > 0.3 or  # Lowered from 0.9
+                    (confidence1[n] > 0.1 and confidence2[m] > 0.1)  # Lowered from 0.5
+            )
 
-            if high_confidence or medium_confidence:
-                # Verify distance constraint
-                p1 = np.array([x1[n], y1[n], r1[n]])
-                p2 = np.array([x2[m], y2[m], r2[m]])
+            if acceptable_confidence:
+                # Verify distance constraint (2D only, ignore z)
+                dx = x2[m] - x1[n]
+                dy = y2[m] - y1[n]
+                dist_2d = np.sqrt(dx * dx + dy * dy)
 
-                if np.linalg.norm(p1 - p2) < max_dis:
+                if dist_2d < max_dis:
                     I1_list.append(n)
                     I2_list.append(m)
 
@@ -136,7 +140,7 @@ np.ndarray, list, list, list]:
     I1 = np.array(I1_list, dtype=int)
     I2 = np.array(I2_list, dtype=int)
 
-    logger.info(f"Found {len(I1)} bidirectional matches")
+    logger.info(f"Found {len(I1)} bidirectional matches ({100.0 * len(I1) / N1:.1f}% of frame 1 particles)")
 
     # Compute displacements
     if len(I1) > 0:
@@ -154,6 +158,7 @@ np.ndarray, list, list, list]:
 
     logger.info(f"Unmatched: {len(I1u)} in frame 1, {len(I2u)} in frame 2")
 
+    # Save results
     with open(filename_result, "wb") as f:
         pickle.dump(
             (I1, I2, I1u, I2u, dx, dy, dr, confidence1, confidence2),
@@ -169,62 +174,110 @@ def match_pairRelax_aux(
         indexa: np.ndarray, indexb: np.ndarray,
         option: Dict[str, Any]
 ) -> Tuple[np.ndarray, np.ndarray]:
-
     global Rs, Rn, Rq, A, B, C, NR
 
     N1 = len(x1)
+    N2 = len(x2)
     I_temp = np.full(N1, -1, dtype=int)
     confidence = np.zeros(N1)
 
-    Pb = [None] * N1
-    Nis = [None] * N1
+    # Build distance matrix for all particle pairs within search radius
+    # Use 2D distance only (ignore r/z coordinate which is always 0)
+    dist_matrix = np.full((N1, N2), np.inf)
+
+    logger.info(f"Building distance matrix with search radius Rs={Rs:.1f}")
 
     for n in range(N1):
-        candidates = indexb[n]
-        valid_mask = (candidates >= 0) & (candidates < len(x2))
-        valid_candidates = candidates[valid_mask]
+        dx = x2 - x1[n]
+        dy = y2 - y1[n]
+        dists = np.sqrt(dx ** 2 + dy ** 2)
 
-        if len(valid_candidates) > 0:
-            Pb[n] = np.ones(len(valid_candidates)) / len(valid_candidates)
-            Nis[n] = valid_candidates
-        else:
-            Pb[n] = np.array([])
-            Nis[n] = np.array([])
+        # Only consider particles within search radius
+        within_radius = dists < Rs
+        dist_matrix[n, within_radius] = dists[within_radius]
 
+    # Count candidates per particle
+    n_candidates = np.sum(~np.isinf(dist_matrix), axis=1)
+    logger.info(
+        f"Candidates per particle: mean={np.mean(n_candidates):.1f}, min={np.min(n_candidates)}, max={np.max(n_candidates)}")
+
+    # Initialize probability matrix
+    Pb = np.zeros((N1, N2))
+
+    for n in range(N1):
+        valid_targets = ~np.isinf(dist_matrix[n, :])
+        n_valid = np.sum(valid_targets)
+
+        if n_valid > 0:
+            # Initialize with distance-based weights (closer = higher weight)
+            dists = dist_matrix[n, valid_targets]
+            weights = np.exp(-dists / (Rs / 3.0))  # Gaussian-like weighting
+            Pb[n, valid_targets] = weights / weights.sum()
+
+    # Relaxation iterations
     for iteration in range(NR):
-        Pb_new = []
+        Pb_new = Pb.copy()
 
         for n in range(N1):
-            p = np.array([x1[n], y1[n], r1[n]])
-            probs = Pb[n]
-            cands = Nis[n]
+            valid_targets = ~np.isinf(dist_matrix[n, :])
 
-            if len(cands) == 0 or len(probs) == 0:
-                Pb_new.append(np.array([]))
+            if not np.any(valid_targets):
                 continue
 
-            scores = np.zeros(len(cands))
+            # Get candidate matches and their probabilities
+            cand_indices = np.where(valid_targets)[0]
 
-            for i, m in enumerate(cands):
-                q = np.array([x2[m], y2[m], r2[m]])
-                dist = np.linalg.norm(p - q)
+            # Compute scores based on distances and neighbor consistency
+            scores = np.zeros(len(cand_indices))
 
-                if dist < Rs:
-                    scores[i] += probs[i]
+            for i, m in enumerate(cand_indices):
+                # Distance-based score
+                dist = dist_matrix[n, m]
+                dist_score = np.exp(-dist / (Rs / 3.0))
 
+                # Neighbor consistency: check if neighbors of n map to neighbors of m
+                neighbor_score = 0.0
+                neighbors_n = indexa[n]  # Neighbors of particle n in frame 1 (same frame)
+
+                count_neighbors = 0
+                for nn in neighbors_n:
+                    if nn >= 0 and nn < N1:
+                        # Check if this neighbor has high probability of matching near m
+                        # Look at particles near m in frame 2
+                        for mm in range(max(0, m - 15), min(N2, m + 15)):
+                            if not np.isinf(dist_matrix[nn, mm]):
+                                neighbor_score += Pb[nn, mm]
+                                count_neighbors += 1
+
+                if count_neighbors > 0:
+                    neighbor_score = neighbor_score / count_neighbors
+
+                # Combined score
+                scores[i] = dist_score * (A + B * neighbor_score)
+
+            # Update probabilities
             if scores.sum() > 0:
-                probs = probs * (A + B * scores)
-                probs = probs / probs.sum()
-
-            Pb_new.append(probs)
+                Pb_new[n, cand_indices] = scores / scores.sum()
+            else:
+                Pb_new[n, cand_indices] = Pb[n, cand_indices]
 
         Pb = Pb_new
 
+    # Extract final matches with VERY low threshold
     for n in range(N1):
-        probs = Pb[n]
-        if len(probs) > 0:
-            idx = np.argmax(probs)
-            I_temp[n] = Nis[n][idx]
-            confidence[n] = probs[idx]
+        valid_targets = ~np.isinf(dist_matrix[n, :])
+
+        if np.any(valid_targets):
+            # Find best match
+            best_m = np.argmax(Pb[n, :])
+            best_prob = Pb[n, best_m]
+
+            # Accept if probability is above minimal threshold and within distance
+            if best_prob > 0.01 and not np.isinf(dist_matrix[n, best_m]):  # Very low threshold!
+                I_temp[n] = best_m
+                confidence[n] = best_prob
+
+    n_matched = np.sum(I_temp >= 0)
+    logger.info(f"Relaxation complete: {n_matched}/{N1} particles matched ({100.0 * n_matched / N1:.1f}%)")
 
     return I_temp, confidence

@@ -27,7 +27,7 @@ class beadPosition:
 
         img_norm = self.image / self.image.max()
 
-        binary = (img_norm > self.threshold).astype(np.uint8)
+        binary = (img_norm < self.threshold).astype(np.uint8)
 
         num_labels, labels = cv2.connectedComponents(binary)
 
